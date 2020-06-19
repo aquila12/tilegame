@@ -1,59 +1,59 @@
-class Segment
-  SENTRY = { dirty: false, id: nil }
-
-  def initialize(tiles_x, tiles_y, tile_w, tile_h, tileset)
-    @w = tiles_x
-    @h = tiles_y
-    @tile_w = tile_w
-    @tile_h = tile_h
-    @tileset = tileset
-    @tiles = (@w * @h).times.map { { dirty: true, id: nil } }
-  end
-
-  def tile(x, y)
-    return SENTRY if x < 0 || x >= @w || y < 0 || y >= @h
-    @tiles[@w * y + x]
-  end
-
-  def each_tile
-    @h.times { |y| @w.times { |x| yield(tile(x,y),x,y) } }
-  end
-
-  def _renderable_tile(tile, x, y)
-    tilesource = @tileset[tile[:id]]
-    {
-      x: (x * @tile_w), y: (y * @tile_h),
-      w: @tile_w, h: @tile_h,
-      path: tilesource[:path],
-      source_x: tilesource[:x],
-      source_y: tilesource[:y],
-      source_w: @tile_w,
-      source_h: @tile_h
-    }
-  end
-
-  def _renderable_tiles
-    list = []
-    each_tile do |tile, x, y|
-      next unless tile[:dirty]
-      list << _renderable_tile(tile, x, y)
-    end
-    list
-  end
-
-  def load(data)
-    each_tile do |tile, x, y|
-      tile[:id] = data[y][x]
-    end
-  end
-
-  def render(target)
-    renderable = _renderable_tiles
-    target.sprites << renderable unless renderable.empty?
-  end
-end
-
 class TileMap
+  class Segment
+    SENTRY = { dirty: false, id: nil }
+
+    def initialize(tiles_x, tiles_y, tile_w, tile_h, tileset)
+      @w = tiles_x
+      @h = tiles_y
+      @tile_w = tile_w
+      @tile_h = tile_h
+      @tileset = tileset
+      @tiles = (@w * @h).times.map { { dirty: true, id: nil } }
+    end
+
+    def tile(x, y)
+      return SENTRY if x < 0 || x >= @w || y < 0 || y >= @h
+      @tiles[@w * y + x]
+    end
+
+    def each_tile
+      @h.times { |y| @w.times { |x| yield(tile(x,y),x,y) } }
+    end
+
+    def _renderable_tile(tile, x, y)
+      tilesource = @tileset[tile[:id]]
+      {
+        x: (x * @tile_w), y: (y * @tile_h),
+        w: @tile_w, h: @tile_h,
+        path: tilesource[:path],
+        source_x: tilesource[:x],
+        source_y: tilesource[:y],
+        source_w: @tile_w,
+        source_h: @tile_h
+      }
+    end
+
+    def _renderable_tiles
+      list = []
+      each_tile do |tile, x, y|
+        next unless tile[:dirty]
+        list << _renderable_tile(tile, x, y)
+      end
+      list
+    end
+
+    def load(data)
+      each_tile do |tile, x, y|
+        tile[:id] = data[y][x]
+      end
+    end
+
+    def render(target)
+      renderable = _renderable_tiles
+      target.sprites << renderable unless renderable.empty?
+    end
+  end
+
   # Map segments - "square" loadable sections of map
   # Loader callback - to get unloaded sections
   # Keep 4 segments loaded (or N^2 segments)
