@@ -29,7 +29,7 @@ def segment(sx,sy)
   row = SEGMENT_MAP[sy] || []
   segment_type = row[sx]
   segment_type = (rand < 0.05 ? 'i' : 'o') unless segment_type
-  puts "Load #{sx}, #{sy} => #{segment_type}"
+  #puts "Load #{sx}, #{sy} => #{segment_type}"
 
   data = case segment_type
   when 'i' then ISLAND_SEGMENT

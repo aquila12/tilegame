@@ -102,7 +102,6 @@ class TileMap
   end
 
   def fill_buffer
-    puts "Filling buffer from #{@sox}, #{@soy}"
     @seg_count.times do |sy|
       @seg_count.times do |sx|
         load_segment(sx + @sox, sy + @soy)
@@ -165,7 +164,6 @@ class TileMap
     x_loads = sdx == 0 ? [] : @seg_count.times.map { |ly| { x: lbx, y: @soy + ly } }
     y_loads = sdy == 0 ? [] : @seg_count.times.map { |lx| { x: @sox + lx, y: lby } }
     loads = x_loads | y_loads
-    puts "Loading #{loads.count} segments"
     loads.each { |l| load_segment(l[:x], l[:y]) }
   end
 
