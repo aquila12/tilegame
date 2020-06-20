@@ -26,66 +26,22 @@ class TileMapSprite
 end
 
 class TileMap
-  class Segment < TileMapSprite
-    class TileSprite < TileMapSprite
-      attr_accessor :animated
+  class TileSprite < TileMapSprite
+    attr_accessor :animated
 
-      def initialize
-        super
-      end
-
-      def set(tiledef)
-        @tiledef = tiledef
-        @animated = tiledef[:animated]
-        source(@tiledef[:path], @tiledef[:x], @tiledef[:y])
-      end
-
-      def animate
-        @source_x = @tiledef[:x]
-        @source_y = @tiledef[:y]
-      end
+    def initialize
+      super
     end
 
-    SENTRY = TileSprite.new
-
-    attr_reader :ox, :oy, :tiles
-
-    def initialize(tiles_x, tiles_y, tile_width, tile_height, tileset)
-      @tiles_x = tiles_x
-      @tiles_y = tiles_y
-      @tile_width = tile_width
-      @tile_height = tile_height
-      @tileset = tileset
-      init_tileset
+    def set(tiledef)
+      @tiledef = tiledef
+      @animated = tiledef[:animated]
+      source(@tiledef[:path], @tiledef[:x], @tiledef[:y])
     end
 
-    def init_tileset
-      @tiles = (@tiles_x * @tiles_y).times.map { TileSprite.new }
-      each_tile do |tile, x, y|
-        tile.position(x * @tile_width, y * @tile_height)
-        tile.dimensions(@tile_width, @tile_height)
-      end
-    end
-
-    def origin(ox, oy)
-      @ox = ox
-      @oy = oy
-    end
-
-    def tile(x, y)
-      return SENTRY if x < 0 || x >= @tiles_x || y < 0 || y >= @tiles_h
-      @tiles[@tiles_x * y + x]
-    end
-
-    def each_tile
-      @tiles_y.times { |y| @tiles_x.times { |x| yield(tile(x,y),x,y) } }
-    end
-
-    def load(data)
-      each_tile do |tile, x, y|
-        id = data[y][x]
-        tile.set(@tileset[id])
-      end
+    def animate
+      @source_x = @tiledef[:x]
+      @source_y = @tiledef[:y]
     end
   end
 
@@ -96,52 +52,130 @@ class TileMap
   #  which need to be recycled
   # Update loaded segments in case they have any animated tiles
 
-  def initialize(name, tile_width, tile_height, seg_size, &loader)
+  def initialize(name, tile_width, tile_height, seg_size, buffer_size, &loader)
     super
     @name = name
     @loader = loader
     @seg_size = seg_size
     @tile_width = tile_width
     @tile_height = tile_height
-    @width = @seg_size * @tile_width
-    @height = @seg_size * @tile_height
-    raise ArgumentError, "Map segment too big: #{@width}×#{@height}" if @width > 1280 || @height > 720
-    @segments = []
+    @tile_origin_x = @tile_origin_y = 0
+    @draw_tiles_x = (1280 / tile_width).floor + 1
+    @draw_tiles_y = (720 / tile_height).floor + 1
+    @tiles = Array.new(buffer_size * buffer_size, { path: :null, x: 0, y: 0 })
+    @buffer_size = buffer_size
+    init_tilesprites
     pan_abs(0, 0)
+  end
+
+  def init_tilesprites
+    @tilesprites = (@draw_tiles_x * @draw_tiles_y).times.map do
+      t = TileSprite.new
+      t.dimensions(@tile_width, @tile_height)
+      t
+    end
+  end
+
+  def set_tile(x, y, v)
+    @tiles[y * @buffer_size + x] = v
+  end
+
+  def origin(ox, oy)
+    @ox = ox
+    @oy = oy
   end
 
   def pan_abs(x, y)
     @pan = {x: x, y: y}
+    update_draw_window
+    maybe_load
   end
 
   def pan_rel(x, y)
     @pan[:x] += x
     @pan[:y] += y
+    update_draw_window
+    maybe_load
   end
 
   def load_segment(sx, sy)
     name = "#{@name}_#{sx.to_i}_#{sy.to_i}"
     segment_data = @loader.call(sx, sy)
-    s = Segment.new(@seg_size, @seg_size, @tile_width, @tile_height, segment_data[:tileset])
+    return false unless segment_data
 
-    s.origin(sx * @width, sy * @height)
-    s.dimensions(@width, @height)
-    s.source(name, 0, 0)
+    x0 = sx * @seg_size
+    y0 = sy * @seg_size
+    tilemap = segment_data[:tilemap]
+    tileset = segment_data[:tileset]
+    @seg_size.times do |x|
+      @seg_size.times do |y|
+        tile = tilemap[x][y]
+        set_tile(x + x0, y + y0, tileset[tile])
+      end
+    end
+  end
 
-    s.load(segment_data[:tilemap])
-    @segments << s
+  def origin
+    {
+      x: @pan[:x] - @tile_origin_x,
+      y: @pan[:y] - @tile_origin_y
+    }
+  end
+
+  def update_draw_window
+    o = origin
+    @tx0, @x0 = o[:x].divmod(@tile_width)
+    @ty0, @y0 = o[:y].divmod(@tile_height)
+    @tx1 = @tx0 + @draw_tiles_x
+    @ty1 = @ty0 + @draw_tiles_y
+  end
+
+  def maybe_load
+    dx = dy = 0
+    case
+    when @tx0 < 1 then dx = @seg_size
+    when @tx1 >= @buffer_size then dx = -@seg_size
+    end
+
+    case
+    when @ty0 < 1 then dy = @seg_size
+    when @ty1 >= @buffer_size then dy = -@seg_size
+    end
+
+    shuffle_tiles(dx, dy) unless dx==0 && dy==0
+    # TODO: Boundary load
+  end
+
+  # TODO: Call this?
+  def shuffle_tiles(dx, dy)
+    @tile_origin_x -= dx * @tile_width
+    @tile_origin_y -= dy * @tile_height
+    @tiles.rotate!(- (dy * @buffer_size + dx))
+    update_draw_window
+  end
+
+  def update_tile_sprites
+    n = 0
+    y = -@y0
+    t = @ty0 * @buffer_size + @tx0
+    (@ty0...@ty1).each do |ty|
+      x = -@x0
+      t0 = t
+      (@tx0...@tx1).each do |tx|
+        tile = @tiles[t] # NB: No bounds check
+        @tilesprites[n].position(x, y)
+        @tilesprites[n].source(tile[:path], tile[:x], tile[:y])
+        n += 1
+        t += 1
+        x += @tile_width
+      end
+      t = t0 + @buffer_size
+      y += @tile_height
+    end
   end
 
   def render(args)
-    @segments.each do |s|
-      tiles = s.tiles
-      tiles.each { |t| t.animate }
-
-      args.render_target(s.path).sprites << tiles
-
-      s.position(s.ox - @pan[:x], s.oy - @pan[:y])
-    end
-
-    args.outputs.sprites << @segments
+    update_tile_sprites
+    args.outputs.sprites << @tilesprites
   end
 end

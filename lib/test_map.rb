@@ -27,7 +27,8 @@ end
 
 def segment(sx,sy)
   row = SEGMENT_MAP[sy] || []
-  segment_type = row[sx] || 'o'
+  segment_type = row[sx]
+  return false unless segment_type
 
   data = case segment_type
   when 'i' then ISLAND_SEGMENT
@@ -65,3 +66,5 @@ TILESET = {
   'g' => { path: :active_tileset, x: TILE_W, y: 0 },
   'r' => { path: :active_tileset, x: TILE_W, y: TILE_H }
 }
+
+DEFAULT_TILE = { path: :active_tileset, x: 5 * TILE_W, y: 5 * TILE_H }
