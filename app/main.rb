@@ -9,11 +9,6 @@ class Game
     @args = args
     @tilemap = TileMap.new(:ground, TILE_W, TILE_H, SEGMENT_SIZE, 8) { |x, y| segment(x,y) }
 
-    update_solid_tile(0, 0, 32, 32, 160) # Water
-    update_solid_tile(0, 1, 240, 240, 120) # Sand
-    update_solid_tile(1, 0, 32, 192, 32) # Grass
-    update_solid_tile(1, 1, 60, 60, 60) # Rock
-    update_solid_tile(5, 5, 20, 40, 60) # Space
     @cam = [0, 0]
   end
 
@@ -27,6 +22,11 @@ class Game
   def tick
     inputs
     # update
+    update_solid_tile(0, 0, 32, 32, 120 + ((@args.tick_count % 150)-75).abs) # Water
+    update_solid_tile(0, 1, 240, 240, 120) # Sand
+    update_solid_tile(1, 0, 32, 192, 32) # Grass
+    update_solid_tile(1, 1, 60, 60, 60) # Rock
+    update_solid_tile(5, 5, 20, 40, 60) # Space
     render
     # @tilemap.shuffle_tiles(1,1) if @args.tick_count % 60 == 0
   end
