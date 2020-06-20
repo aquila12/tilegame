@@ -1,25 +1,3 @@
-def derp(sprite)
-  {
-    x: sprite.x,
-    y: sprite.y,
-    w: sprite.w,
-    h: sprite.h,
-    path: sprite.path,
-    source_x: sprite.source_x,
-    source_y: sprite.source_y,
-    source_w: sprite.source_w,
-    source_h: sprite.source_h
-  }
-end
-
-def vars(o)
-  h = {}
-  o.instance_variables.each do |v|
-    h[v] = o.instance_variable_get(v)
-  end
-  h
-end
-
 class TileMapSprite
   attr_sprite
 
@@ -152,13 +130,6 @@ class TileMap
 
     s.load(segment_data[:tilemap])
     @segments << s
-  end
-
-  def _copy_spec(path)
-    {
-      x: 0, y: 0, w: @width, h: @height,
-      path: path, source_x: 0, source_y: 0, source_w: @width, source_h: @height
-    }
   end
 
   def render(args)
