@@ -52,20 +52,23 @@ class TileMap
   #  which need to be recycled
   # Update loaded segments in case they have any animated tiles
 
-  def initialize(name, tile_width, tile_height, seg_size, buffer_size, &loader)
+  def initialize(name, tile_width, tile_height, seg_size, n_segs, &loader)
     super
     @name = name
     @loader = loader
     @seg_size = seg_size
     @tile_width = tile_width
     @tile_height = tile_height
-    @tile_origin_x = @tile_origin_y = 0
+    @seg_count = n_segs
+    @buffer_size = seg_size * n_segs
+    @tile_origin_x = @tile_origin_y = @sox = @soy = 0
     @draw_tiles_x = (1280 / tile_width).floor + 1
     @draw_tiles_y = (720 / tile_height).floor + 1
-    @tiles = Array.new(buffer_size * buffer_size, { path: :null, x: 0, y: 0 })
-    @buffer_size = buffer_size
+    @tile_count = @buffer_size * @buffer_size
+    @tiles = Array.new(@tile_count, { path: :null, x: 0, y: 0 })
     init_tilesprites
     pan_abs(0, 0)
+    fill_buffer
   end
 
   def init_tilesprites
@@ -98,13 +101,21 @@ class TileMap
     maybe_load
   end
 
+  def fill_buffer
+    puts "Filling buffer from #{@sox}, #{@soy}"
+    @seg_count.times do |sy|
+      @seg_count.times do |sx|
+        load_segment(sx + @sox, sy + @soy)
+      end
+    end
+  end
+
   def load_segment(sx, sy)
-    name = "#{@name}_#{sx.to_i}_#{sy.to_i}"
     segment_data = @loader.call(sx, sy)
     return false unless segment_data
 
-    x0 = sx * @seg_size
-    y0 = sy * @seg_size
+    x0 = (sx - @sox) * @seg_size
+    y0 = (sy - @soy) * @seg_size
     tilemap = segment_data[:tilemap]
     tileset = segment_data[:tileset]
     @seg_size.times do |x|
@@ -131,51 +142,70 @@ class TileMap
   end
 
   def maybe_load
-    dx = dy = 0
+    sdx = sdy = 0
     case
-    when @tx0 < 1 then dx = @seg_size
-    when @tx1 >= @buffer_size then dx = -@seg_size
+    when @tx0 < 1 then sdx = 1
+    when @tx1 >= @buffer_size then sdx = -1
     end
 
     case
-    when @ty0 < 1 then dy = @seg_size
-    when @ty1 >= @buffer_size then dy = -@seg_size
+    when @ty0 < 1 then sdy = 1
+    when @ty1 >= @buffer_size then sdy = -1
     end
 
-    shuffle_tiles(dx, dy) unless dx==0 && dy==0
-    # TODO: Boundary load
+    return if sdx==0 && sdy==0
+
+    shuffle_tiles(sdx, sdy)
+    load_boundary(sdx, sdy)
   end
 
-  # TODO: Call this?
-  def shuffle_tiles(dx, dy)
+  def load_boundary(sdx, sdy)
+    lbx = sdx > 0 ? @sox : (@seg_count + @sox - 1)
+    lby = sdy > 0 ? @soy : (@seg_count + @soy - 1)
+    x_loads = sdx == 0 ? [] : @seg_count.times.map { |ly| { x: lbx, y: @soy + ly } }
+    y_loads = sdy == 0 ? [] : @seg_count.times.map { |lx| { x: @sox + lx, y: lby } }
+    loads = x_loads | y_loads
+    puts "Loading #{loads.count} segments"
+    loads.each { |l| load_segment(l[:x], l[:y]) }
+  end
+
+  def shuffle_tiles(sdx, sdy)
+    @sox -= sdx
+    @soy -= sdy
+    dx, dy = [sdx, sdy].map { |n| n * @seg_size }
     @tile_origin_x -= dx * @tile_width
     @tile_origin_y -= dy * @tile_height
     @tiles.rotate!(- (dy * @buffer_size + dx))
     update_draw_window
   end
 
+  def get(tile)
+    @tiles[tile]
+  end
+
   def update_tile_sprites
     n = 0
     y = -@y0
     t = @ty0 * @buffer_size + @tx0
-    (@ty0...@ty1).each do |ty|
+    @draw_tiles_y.times do
       x = -@x0
       t0 = t
-      (@tx0...@tx1).each do |tx|
-        tile = @tiles[t] # NB: No bounds check
+      @draw_tiles_x.times do
+        tile = @tiles[t]
         @tilesprites[n].position(x, y)
         @tilesprites[n].source(tile[:path], tile[:x], tile[:y])
         n += 1
         t += 1
         x += @tile_width
       end
-      t = t0 + @buffer_size
+      t = (t0 + @buffer_size).to_i
       y += @tile_height
     end
   end
 
   def render(args)
     update_tile_sprites
+    args.outputs.labels << [0, 60, "Current origin: #{@tile_origin_x}, #{@tile_origin_y}"]
     args.outputs.sprites << @tilesprites
   end
 end

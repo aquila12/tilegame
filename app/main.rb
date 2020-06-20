@@ -7,8 +7,7 @@ class Game
 
   def initialize(args)
     @args = args
-    @tilemap = TileMap.new(:ground, TILE_W, TILE_H, SEGMENT_SIZE, 64) { |x, y| segment(x,y) }
-    36.times { |n| @tilemap.load_segment(*(n.divmod 6)) }
+    @tilemap = TileMap.new(:ground, TILE_W, TILE_H, SEGMENT_SIZE, 8) { |x, y| segment(x,y) }
 
     update_solid_tile(0, 0, 32, 32, 160) # Water
     update_solid_tile(0, 1, 240, 240, 120) # Sand

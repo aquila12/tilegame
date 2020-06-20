@@ -1,5 +1,5 @@
-TILE_W = 80
-TILE_H = 40
+TILE_W = 40
+TILE_H = 30
 
 SEGMENT_SIZE = 5
 
@@ -28,7 +28,8 @@ end
 def segment(sx,sy)
   row = SEGMENT_MAP[sy] || []
   segment_type = row[sx]
-  return false unless segment_type
+  segment_type = (rand < 0.05 ? 'i' : 'o') unless segment_type
+  puts "Load #{sx}, #{sy} => #{segment_type}"
 
   data = case segment_type
   when 'i' then ISLAND_SEGMENT
@@ -40,25 +41,6 @@ def segment(sx,sy)
 
   { tilemap: data, tileset: TILESET }
 end
-
-MAP = [
-  '................',
-  '.gg......,,,,,,,',
-  '.gg......,,,,,,,',
-  '.gg......,,,,,,,',
-  '.gg......,,,,,,,',
-  '.gg..ll.........',
-  '.gg..ll.........',
-  '.gg..ll..,,..gg.',
-  '.gg..ll..,,..gg.',
-  '.gg..ll..,,..gg.',
-  '.gg..ll..,,..gg.',
-  '.gg..ll.........',
-  '.gg..ll.........',
-  '....,,,,,,,,,,,,',
-  '....,,,,,,,,,,,,',
-  '....,,,,,,,,,,,,'
-]
 
 TILESET = {
   'w' => { path: :active_tileset, x: 0, y: 0 },
