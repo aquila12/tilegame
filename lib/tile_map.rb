@@ -50,15 +50,13 @@ end
 class TileMap
   class Segment < TileMapSprite
     class TileSprite < TileMapSprite
-      attr_accessor :dirty, :animated
+      attr_accessor :animated
 
       def initialize
         super
-        @dirty = true
       end
 
       def set(tiledef)
-        @dirty = true
         @tiledef = tiledef
         @animated = tiledef[:animated]
         source(@tiledef[:path], @tiledef[:x], @tiledef[:y])
@@ -72,7 +70,7 @@ class TileMap
 
     SENTRY = TileSprite.new
 
-    attr_reader :ox, :oy
+    attr_reader :ox, :oy, :tiles
 
     def initialize(tiles_x, tiles_y, tile_width, tile_height, tileset)
       @tiles_x = tiles_x
@@ -103,12 +101,6 @@ class TileMap
 
     def each_tile
       @tiles_y.times { |y| @tiles_x.times { |x| yield(tile(x,y),x,y) } }
-    end
-
-    def dequeue_renderable!
-      list = @tiles.find_all(&:dirty)
-      list.each { |t| t.animated ? t.animate : t.dirty=false }
-      list
     end
 
     def load(data)
@@ -171,12 +163,10 @@ class TileMap
 
   def render(args)
     @segments.each do |s|
-      renderable = s.dequeue_renderable!
-      unless renderable.empty?
-        args.render_target(:seg_scratch).sprites << _copy_spec(s.path)
-        args.render_target(s.path).sprites << _copy_spec(:seg_scratch)
-        args.render_target(s.path).sprites << renderable
-      end
+      tiles = s.tiles
+      tiles.each { |t| t.animate }
+
+      args.render_target(s.path).sprites << tiles
 
       s.position(s.ox - @pan[:x], s.oy - @pan[:y])
     end
