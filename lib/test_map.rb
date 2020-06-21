@@ -1,5 +1,5 @@
-TILE_W = 64
-TILE_H = 36
+TILE_W = 32
+TILE_H = 18
 
 SEGMENT_SIZE = 5
 

@@ -245,9 +245,14 @@ class TileMap
     end
   end
 
+  def static_render(target)
+    target.static_sprites << @tilesprites
+    @static = true
+  end
+
   def render(target)
     update_tile_sprites
     target.labels << [0, 60, "Current origin: #{@tile_origin_x}, #{@tile_origin_y}"]
-    target.sprites << @tilesprites
+    target.sprites << @tilesprites unless @static
   end
 end
