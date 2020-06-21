@@ -102,8 +102,8 @@ class TileMap
     @seg_count = n_segs
     @buffer_size = seg_size * n_segs
     @tile_origin_x = @tile_origin_y = @sox = @soy = 0
-    @draw_tiles_x = (1280 / tile_width).floor + 1
-    @draw_tiles_y = (720 / tile_height).floor + 1
+    @draw_tiles_x = (1280 / tile_width).ceil + 1
+    @draw_tiles_y = (720 / tile_height).ceil + 1
     draw_limit = @buffer_size - @seg_size
     raise RuntimeError, "Buffer is too small" if @draw_tiles_x > draw_limit || @draw_tiles_y > draw_limit
 
