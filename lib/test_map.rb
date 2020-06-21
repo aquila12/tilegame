@@ -1,5 +1,5 @@
-TILE_W = 40
-TILE_H = 30
+TILE_W = 64
+TILE_H = 36
 
 SEGMENT_SIZE = 5
 
@@ -25,7 +25,7 @@ def diagonal_segment(top_left_tile, bottom_right_tile)
   }
 end
 
-def segment(sx,sy)
+def segment(sx, sy, tileset)
   row = SEGMENT_MAP[sy] || []
   segment_type = row[sx]
   segment_type = (rand < 0.05 ? 'i' : 'o') unless segment_type
@@ -39,14 +39,19 @@ def segment(sx,sy)
     diagonal_segment(tl, br)
   end
 
-  { tilemap: data, tileset: TILESET }
+  { tilemap: data, tileset: tileset }
 end
 
-TILESET = {
-  'w' => { path: :active_tileset, x: 0, y: 0 },
-  's' => { path: :active_tileset, x: 0, y: TILE_H },
-  'g' => { path: :active_tileset, x: TILE_W, y: 0 },
-  'r' => { path: :active_tileset, x: TILE_W, y: TILE_H }
+TEST_TILE_DEFINITION = {
+  path: 'sprites/test-tiles.png',
+  tile_width: 32,
+  tile_height: 18,
+  animate_delay: 5,
+  tiles: {
+    'w' => [[0,0],[0,1],[0,2],[0,3],[0,4],[0,5]],
+    'g' => [[1,0]],
+    's' => [[1,1]],
+    'r' => [[1,2]],
+    ' ' => [[1,3]]
+  }
 }
-
-DEFAULT_TILE = { path: :active_tileset, x: 5 * TILE_W, y: 5 * TILE_H }

@@ -7,28 +7,16 @@ class Game
 
   def initialize(args)
     @args = args
-    @tilemap = TileMap.new(:ground, TILE_W, TILE_H, SEGMENT_SIZE, 8) { |x, y| segment(x,y) }
-
+    @tileset = TileSet.new(TEST_TILE_DEFINITION)
+    @tilemap = TileMap.new(:ground, TILE_W, TILE_H, SEGMENT_SIZE, 10) { |x, y| segment(x,y,@tileset) }
     @cam = [0, 0]
-  end
-
-  def update_solid_tile(x, y, r, g, b)
-    @args.render_target(:active_tileset).solids << {
-      x: x * TILE_W, y: y * TILE_H, w: TILE_W, h: TILE_H,
-      r: r, g: g, b: b, a: 255
-    }
   end
 
   def tick
     inputs
-    # update
-    update_solid_tile(0, 0, 32, 32, 120 + ((@args.tick_count % 150)-75).abs) # Water
-    update_solid_tile(0, 1, 240, 240, 120) # Sand
-    update_solid_tile(1, 0, 32, 192, 32) # Grass
-    update_solid_tile(1, 1, 60, 60, 60) # Rock
-    update_solid_tile(5, 5, 20, 40, 60) # Space
-    render
-    # @tilemap.shuffle_tiles(1,1) if @args.tick_count % 60 == 0
+
+    @tileset.animate
+    @tilemap.render(@args.outputs)
   end
 
   EXTENT = [1280, 720]
@@ -44,10 +32,6 @@ class Game
       end
     }
     @tilemap.pan_rel(*pan)
-  end
-
-  def render
-    @tilemap.render(@args)
   end
 end
 

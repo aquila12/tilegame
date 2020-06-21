@@ -1,3 +1,49 @@
+class TileSet
+  def initialize(definition)
+    w = definition[:tile_width]
+    h = definition[:tile_height]
+    @tiles = definition[:tiles].transform_values do |frame_array|
+      frames = frame_array.map { |p| [p[0] * w, p[1] * h].map(&:to_i) }
+      {
+        path: definition[:path],
+        animated: frames.count > 1,
+        frames: frames,
+        current_frame: 0,
+        x: frames.first[0],
+        y: frames.first[1],
+        w: w,
+        h: h
+      }
+    end
+    p @tiles
+    @delay = @animate_delay = definition[:animate_delay]
+  end
+
+  def [](tile_id)
+    @tiles.fetch(tile_id)
+  end
+
+  def _animate_tiles
+    @tiles.each do |_id, t|
+      next unless t[:animated]
+      n = t[:current_frame] + 1
+      n = 0 if n >= t[:frames].count
+      frame = t[:frames][n]
+      t[:x] = frame[0]
+      t[:y] = frame[1]
+      t[:current_frame] = n
+    end
+  end
+
+  def animate
+    @delay -= 1
+    if @delay <= 0
+      @delay = @animate_delay
+      _animate_tiles
+    end
+  end
+end
+
 class TileMapSprite
   attr_sprite
 
@@ -14,37 +60,32 @@ class TileMapSprite
   end
 
   def dimensions(w, h)
-    @source_w = @w = w
-    @source_h = @h = h
+    @w = w
+    @h = h
   end
 
-  def source(path, x, y)
+  def source(path, x, y, w, h)
+    # FIXME: with render_targets this works with source_*
     @path = path
-    @source_x = x
-    @source_y = y
+    @tile_x = x
+    @tile_y = y
+    @tile_w = w
+    @tile_h = h
+  end
+
+  def _region(x,y,w,h)
+    "(#{w}×#{h})@(#{x},#{y})"
+  end
+
+  def to_s
+    s = _region(@source_x,@source_y,@tile_w,@tile_h)
+    d = _region(@x,@y,@w,@h)
+    t = "#%02x%02x%02x, %d" % [@r,@g,@b,@a]
+    "#{path} #{s}-(#{t})->#{d}"
   end
 end
 
 class TileMap
-  class TileSprite < TileMapSprite
-    attr_accessor :animated
-
-    def initialize
-      super
-    end
-
-    def set(tiledef)
-      @tiledef = tiledef
-      @animated = tiledef[:animated]
-      source(@tiledef[:path], @tiledef[:x], @tiledef[:y])
-    end
-
-    def animate
-      @source_x = @tiledef[:x]
-      @source_y = @tiledef[:y]
-    end
-  end
-
   # Map segments - "square" loadable sections of map
   # Loader callback - to get unloaded sections
   # Keep 4 segments loaded (or N^2 segments)
@@ -64,6 +105,9 @@ class TileMap
     @tile_origin_x = @tile_origin_y = @sox = @soy = 0
     @draw_tiles_x = (1280 / tile_width).floor + 1
     @draw_tiles_y = (720 / tile_height).floor + 1
+    draw_limit = @buffer_size - @seg_size
+    raise RuntimeError, "Buffer is too small" if @draw_tiles_x > draw_limit || @draw_tiles_y > draw_limit
+
     @tile_count = @buffer_size * @buffer_size
     @tiles = Array.new(@tile_count, { path: :null, x: 0, y: 0 })
     init_tilesprites
@@ -73,7 +117,7 @@ class TileMap
 
   def init_tilesprites
     @tilesprites = (@draw_tiles_x * @draw_tiles_y).times.map do
-      t = TileSprite.new
+      t = TileMapSprite.new
       t.dimensions(@tile_width, @tile_height)
       t
     end
@@ -190,8 +234,9 @@ class TileMap
       t0 = t
       @draw_tiles_x.times do
         tile = @tiles[t]
-        @tilesprites[n].position(x, y)
-        @tilesprites[n].source(tile[:path], tile[:x], tile[:y])
+        sprite = @tilesprites[n]
+        sprite.position(x, y)
+        sprite.source(tile[:path], tile[:x], tile[:y], tile[:w], tile[:h])
         n += 1
         t += 1
         x += @tile_width
@@ -201,9 +246,9 @@ class TileMap
     end
   end
 
-  def render(args)
+  def render(target)
     update_tile_sprites
-    args.outputs.labels << [0, 60, "Current origin: #{@tile_origin_x}, #{@tile_origin_y}"]
-    args.outputs.sprites << @tilesprites
+    target.labels << [0, 60, "Current origin: #{@tile_origin_x}, #{@tile_origin_y}"]
+    target.sprites << @tilesprites
   end
 end
