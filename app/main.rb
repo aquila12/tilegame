@@ -1,4 +1,4 @@
-require 'lib/fps_profiler.rb'
+require 'lib/profiler.rb'
 require 'lib/tile_map.rb'
 require 'lib/test_map.rb'
 
@@ -37,9 +37,13 @@ end
 
 def tick(args)
   $game = @game = Game.new(args) if args.tick_count == 0
-  @game.tick
-  FpsProfiler.tick
-  args.outputs.labels << { x: 8, y: 720 - 8, text: FpsProfiler.report }
+  @fps_profiler ||= Profiler.new("FPS", 600, 10)
+  @tick_profiler ||= Profiler.new("Game tick", 600, 10)
+  @fps_profiler.profile_between_calls
+
+  @tick_profiler.profile { @game.tick }
+  args.outputs.labels << { x: 8, y: 720 - 8, text: @fps_profiler.report }
+  args.outputs.labels << { x: 8, y: 720 - 28, text: @tick_profiler.report }
   # args.outputs.labels << { x: 8, y: 720 - 28, text: args.outputs.static_sprites.count }
   #args.outputs.labels << { x: 8, y: 720 - 48, text: args.render_target(@name).static_sprites.count }
 end

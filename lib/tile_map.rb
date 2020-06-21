@@ -15,7 +15,6 @@ class TileSet
         h: h
       }
     end
-    p @tiles
     @delay = @animate_delay = definition[:animate_delay]
   end
 
