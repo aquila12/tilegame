@@ -1,10 +1,11 @@
 class Profiler
-  FORMAT = '%0.1f'
-
-  def initialize(label, samples, jitter_percentile)
+  def initialize(label, samples, jitter_percentile, format = '%0.1f')
     @label = label
-    @ticktimes = []
+    @samples = samples
     @percentile = jitter_percentile / 100
+    f = format
+    @format = "#{@label}: last #{f}ms / avg #{f}ms / min #{f}ms / max #{f}ms / jitter #{f}ms (over %d frames)"
+    @ticktimes = []
     @last = nil
   end
 
@@ -12,9 +13,9 @@ class Profiler
     Time.now
   end
 
-  def record(result_us)
-    @ticktimes << result_us
-    @ticktimes.shift if @ticktimes.length > 600
+  def record(result_s)
+    @ticktimes << result_s*1000
+    @ticktimes.shift if @ticktimes.length > @samples
   end
 
   def profile
@@ -31,22 +32,22 @@ class Profiler
   end
 
   def last_time
-    @ticktimes.last || '...'
+    @ticktimes.last
   end
 
   def avg_time
-    return '...' if @ticktimes.empty?
+    return if @ticktimes.empty?
     total = 0
     @ticktimes.each { |t| total += t }
     total / @ticktimes.count
   end
 
   def min_time
-    @ticktimes.min || '...'
+    @ticktimes.min
   end
 
   def max_time
-    @ticktimes.max || '...'
+    @ticktimes.max
   end
 
   def timing_jitter
@@ -58,11 +59,8 @@ class Profiler
   end
 
   def report
-    timing_parameters = [last_time, avg_time, min_time, max_time, timing_jitter]
-    last, avg, min, max, jitter = timing_parameters.map do |m|
-      String === m ? m : FORMAT % (m*1000).to_f
-    end
+    return "#{@label}: No data" if @ticktimes.empty?
 
-    "#{@label}: last #{last}ms / avg #{avg}ms / min #{min}ms / max #{max}ms / jitter #{jitter}ms (over #{@ticktimes.count} frames)"
+    @format % [last_time, avg_time, min_time, max_time, timing_jitter, @ticktimes.count]
   end
 end
