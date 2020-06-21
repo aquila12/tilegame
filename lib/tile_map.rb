@@ -92,9 +92,7 @@ class TileMap
   #  which need to be recycled
   # Update loaded segments in case they have any animated tiles
 
-  def initialize(name, tile_width, tile_height, seg_size, n_segs, &loader)
-    super
-    @name = name
+  def initialize(tile_width, tile_height, seg_size, n_segs, &loader)
     @loader = loader
     @seg_size = seg_size
     @tile_width = tile_width

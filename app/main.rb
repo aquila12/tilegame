@@ -8,7 +8,7 @@ class Game
   def initialize(args)
     @args = args
     @tileset = TileSet.new(TEST_TILE_DEFINITION)
-    @tilemap = TileMap.new(:ground, TILE_W, TILE_H, SEGMENT_SIZE, 10) { |x, y| segment(x,y,@tileset) }
+    @tilemap = TileMap.new(TILE_W, TILE_H, SEGMENT_SIZE, 10) { |x, y| segment(x,y,@tileset) }
     @tilemap.static_render(args.outputs)
     @cam = [0, 0]
   end
