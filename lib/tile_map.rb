@@ -85,13 +85,16 @@ class TileMapSprite
 end
 
 class TileMap
-  # Map segments - "square" loadable sections of map
-  # Loader callback - to get unloaded sections
-  # Keep 4 segments loaded (or N^2 segments)
-  # On each update, adjust the camera, callback for any segments
-  #  which need to be recycled
-  # Update loaded segments in case they have any animated tiles
-
+  # Tile dimensions are *drawn* dimensions
+  # Map segment is a logically-square loadable section of map
+  # Keeps n_segs×n_segs segments in the buffer (MUST be bigger than viewport!)
+  #
+  # Loader block responds to load(seg_x, seg_y) and returns:
+  # {
+  #   tilemap: array of arrays of tile_id (dereferenced as [row][col])
+  #   tileset: collection of tiles dereferenced by [tile_id]
+  # }
+  # - tiles must have the keys :path, :x, :y, :w, :h describing the image source
   def initialize(tile_width, tile_height, seg_size, n_segs, &loader)
     @loader = loader
     @seg_size = seg_size
@@ -158,10 +161,10 @@ class TileMap
     y0 = (sy - @soy) * @seg_size
     tilemap = segment_data[:tilemap]
     tileset = segment_data[:tileset]
-    @seg_size.times do |x|
-      @seg_size.times do |y|
-        tile = tilemap[x][y]
-        set_tile(x + x0, y + y0, tileset[tile])
+    @seg_size.times do |row|
+      @seg_size.times do |col|
+        tile = tilemap[row][col]
+        set_tile(col + x0, row + y0, tileset[tile])
       end
     end
   end
