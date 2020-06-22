@@ -1,3 +1,6 @@
+# Copyright 2020 Nick Moriarty
+# All rights reserved
+
 require 'lib/profiler.rb'
 require 'lib/tile_map.rb'
 require 'lib/test_map.rb'

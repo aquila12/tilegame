@@ -1,3 +1,6 @@
+# Copyright 2020 Nick Moriarty
+# All rights reserved
+
 TILE_W = 32
 TILE_H = 18
 

@@ -1,3 +1,6 @@
+# Copyright 2020 Nick Moriarty
+# All rights reserved
+
 class TileSet
   def initialize(definition)
     w = definition[:tile_width]
