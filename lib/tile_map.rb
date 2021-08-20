@@ -46,47 +46,6 @@ class TileSet
   end
 end
 
-class TileMapSprite
-  attr_sprite
-
-  def initialize
-    @r = 255
-    @g = 255
-    @b = 255
-    @a = 255
-  end
-
-  def position(x, y)
-    @x = x
-    @y = y
-  end
-
-  def dimensions(w, h)
-    @w = w
-    @h = h
-  end
-
-  def source(path, x, y, w, h)
-    # FIXME: with render_targets this works with source_*
-    @path = path
-    @tile_x = x
-    @tile_y = y
-    @tile_w = w
-    @tile_h = h
-  end
-
-  def _region(x,y,w,h)
-    "(#{w}×#{h})@(#{x},#{y})"
-  end
-
-  def to_s
-    s = _region(@source_x,@source_y,@tile_w,@tile_h)
-    d = _region(@x,@y,@w,@h)
-    t = "#%02x%02x%02x, %d" % [@r,@g,@b,@a]
-    "#{path} #{s}-(#{t})->#{d}"
-  end
-end
-
 class TileMap
   # Tile dimensions are *drawn* dimensions
   # Map segment is a logically-square loadable section of map
@@ -113,17 +72,8 @@ class TileMap
 
     @tile_count = @buffer_size * @buffer_size
     @tiles = Array.new(@tile_count, { path: :null, x: 0, y: 0 })
-    init_tilesprites
     pan_abs(0, 0)
     fill_buffer
-  end
-
-  def init_tilesprites
-    @tilesprites = (@draw_tiles_x * @draw_tiles_y).times.map do
-      t = TileMapSprite.new
-      t.dimensions(@tile_width, @tile_height)
-      t
-    end
   end
 
   def set_tile(x, y, v)
@@ -228,8 +178,7 @@ class TileMap
     @tiles[tile]
   end
 
-  def update_tile_sprites
-    n = 0
+  def draw_override(canvas)
     y = -@y0
     t = @ty0 * @buffer_size + @tx0
     @draw_tiles_y.times do
@@ -237,10 +186,13 @@ class TileMap
       t0 = t
       @draw_tiles_x.times do
         tile = @tiles[t]
-        sprite = @tilesprites[n]
-        sprite.position(x, y)
-        sprite.source(tile[:path], tile[:x], tile[:y], tile[:w], tile[:h])
-        n += 1
+        canvas.draw_sprite_3(
+          x, y, @tile_width, @tile_height, tile[:path],
+          nil, nil, nil, nil, nil, # Angle A R G B
+          tile[:x], tile[:y], tile[:w], tile[:h], # Tile coords (top-down)
+          nil, nil, nil, nil, # Flip H V, Anchor X Y
+          nil, nil, nil, nil # Source coords (bottom-up)
+        )
         t += 1
         x += @tile_width
       end
@@ -249,14 +201,8 @@ class TileMap
     end
   end
 
-  def static_render(target)
-    target.static_sprites << @tilesprites
-    @static = true
-  end
-
   def render(target)
-    update_tile_sprites
     target.labels << [0, 60, "Current origin: #{@tile_origin_x}, #{@tile_origin_y}"]
-    target.sprites << @tilesprites unless @static
+    target.sprites << self
   end
 end
