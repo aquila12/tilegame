@@ -26,7 +26,8 @@ class Game
   MARGIN = 80
   PAN_RATE = 10
   def inputs
-    pos = @args.inputs.mouse.position
+    mouse = @args.inputs.mouse
+    pos = [mouse.x, mouse.y]
     pan = 2.times.map { |dim|
       case
       when pos[dim] < MARGIN then -PAN_RATE
